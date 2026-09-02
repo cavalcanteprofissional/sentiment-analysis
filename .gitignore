@@ -2,3 +2,19 @@
 __pycache__/
 mlruns.db
 resultados.json
+
+.env
+
+# Artefatos do MLflow (server Docker persiste em ./mlruns no host)
+mlruns/
+mlartifacts/
+
+# Caches e ferramentas
+.pytest_cache/
+.ruff_cache/
+.huggingface/
+node_modules/
+
+# Ambiente / IDE
+.vscode/
+.idea/

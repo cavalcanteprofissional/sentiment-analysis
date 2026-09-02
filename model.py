@@ -1,4 +1,8 @@
-"""Carregamento do modelo de sentiment analysis, reaproveitado por app.py, mlflow_tracking.py e api/main.py."""
+"""Carregamento do modelo de sentiment analysis.
+
+Reaproveitado por app.py, mlflow_tracking.py e api/main.py.
+"""
+
 from transformers import pipeline
 
 DEFAULT_MODEL = None  # None = usa o modelo default do pipeline (distilbert-sst2-english)
