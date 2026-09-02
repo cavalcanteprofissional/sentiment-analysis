@@ -1,0 +1,45 @@
+[tool.poetry]
+name = "sentiment-analysis"
+version = "0.1.0"
+description = "Análise de sentimentos com Hugging Face Transformers, rastreamento de experimentos com MLflow, API de inferência FastAPI e demo Gradio."
+authors = ["Lucas Cavalcante dos Santos <cavalcantesidi@outlook.com>"]
+readme = "README.md"
+packages = [{ include = "api" }, { include = "model.py" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+transformers = "5.16.1"
+sentencepiece = "0.2.0"
+torch = "2.13.0"
+gradio = "6.26.0"
+datasets = "5.0.1"
+mlflow = "3.15.2"
+fastapi = "0.141.1"
+uvicorn = "0.52.4"
+python-multipart = "0.0.32"
+pillow = "12.3.0"
+
+[tool.poetry.group.train]
+optional = true
+
+[tool.poetry.group.train.dependencies]
+scikit-learn = "1.9.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^9.0.0"
+ruff = "^0.14.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-include = ["*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

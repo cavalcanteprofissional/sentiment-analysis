@@ -1,4 +1,5 @@
 # Dependências extras SOMENTE para o desafio bônus opcional (train_model.py).
-# Instalar com: pip install -r requirements.txt -r requirements_train.txt
+# Com Poetry: instale o grupo train -> `poetry install --with train`
+# Sem Poetry (compat): `pip install -r requirements.txt -r requirements_train.txt`
 -r requirements.txt
 scikit-learn==1.9.0
