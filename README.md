@@ -1,8 +1,8 @@
 # Sentiment Analyzer — MLOps com MLflow
 
-> **Disciplina:** MLOps — rastreamento de experimentos, deploy e monitoramento
-> **Instituição:** SiDi SOFTEX
-> **Fork (repositório da atividade):** [`cavalcanteprofissional/sentiment-analysis`](https://github.com/cavalcanteprofissional/sentiment-analysis)
+> **Disciplina:** MLOps — rastreamento de experimentos, deploy e monitoramento\
+> **Instituição:** SiDi SOFTEX\
+> **Fork (repositório da atividade):** [`cavalcanteprofissional/sentiment-analysis`](https://github.com/cavalcanteprofissional/sentiment-analysis)\
 > **Base (repositório do professor):** [`profdiegoluispires/sentiment-analysis`](https://github.com/profdiegoluispires/sentiment-analysis)
 
 ---
