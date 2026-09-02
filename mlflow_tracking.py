@@ -10,14 +10,25 @@ TODO (aluno): adicione um terceiro modelo a lista MODELS_TO_COMPARE
 
 Rodar: python mlflow_tracking.py
 """
+
 import json
+import os
+import sys
 import time
 
 import mlflow
 
+# Melhoria: garante o encoding UTF-8 no console (o MLflow 3.x imprime emojis
+# no log de fim de run; no Windows cp1252 isso lancaria UnicodeEncodeError).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 from model import load_classifier
 
-mlflow.set_tracking_uri("sqlite:///mlruns.db")
+# Melhoria (TASK.md §1): respeitar o MLFLOW_TRACKING_URI do ambiente
+# (ex.: http://localhost:5000 apontando para o servidor MLflow via Docker),
+# com fallback para o SQLite local caso a variavel nao esteja definida.
+mlflow.set_tracking_uri(os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlruns.db"))
 mlflow.set_experiment("sentiment-analysis-comparacao-modelos")
 
 TEST_SENTENCES = [
@@ -30,19 +41,32 @@ TEST_SENTENCES = [
 MODELS_TO_COMPARE = [
     None,  # None = modelo default do pipeline (distilbert-sst2-english)
     "cardiffnlp/twitter-xlm-roberta-base-sentiment",
-    # TODO (aluno): adicione um terceiro modelo aqui
+    "nlptown/bert-base-multilingual-uncased-sentiment",
 ]
 
 
 def normalize_label(label: str) -> str:
     """Modelos diferentes usam esquemas de rotulo diferentes (ex.: POSITIVE/NEGATIVE
     vs Positive/Negative/Neutral vs "1 star".."5 stars"). Aqui normalizamos os casos
-    mais comuns para poder calcular uma accuracy comparavel entre modelos."""
+    mais comuns para poder calcular uma accuracy comparavel entre modelos.
+
+    Divergencia/melhoria (MLOps_45 TODO.md §3): o modelo nlptown retorna rotulos
+    "1 star".."5 stars" em vez de POSITIVE/NEGATIVE; sem este mapeamento a sua
+    accuracy no conjunto de teste seria zerada.
+    """
     label = label.upper()
     if "POS" in label:
         return "POSITIVE"
     if "NEG" in label:
         return "NEGATIVE"
+    for stars, sentiment in (
+        ("4", "POSITIVE"),
+        ("5", "POSITIVE"),
+        ("1", "NEGATIVE"),
+        ("2", "NEGATIVE"),
+    ):
+        if f"{stars} STARS" in label or label.startswith(stars):
+            return sentiment
     return label
 
 
@@ -80,6 +104,10 @@ if __name__ == "__main__":
 
     print("\nComparando execucoes:")
     df = mlflow.search_runs(order_by=["metrics.accuracy_frases_teste DESC"])
-    cols = ["params.model_name", "metrics.accuracy_frases_teste",
-            "metrics.avg_confidence", "metrics.latencia_media_seg"]
+    cols = [
+        "params.model_name",
+        "metrics.accuracy_frases_teste",
+        "metrics.avg_confidence",
+        "metrics.latencia_media_seg",
+    ]
     print(df[cols].to_string(index=False))
