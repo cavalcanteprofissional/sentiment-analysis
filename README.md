@@ -1,30 +1,58 @@
 # Sentiment Analyzer — MLOps com MLflow
 
-> **Discente:** Lucas Cavalcante dos Santos | cavalcantesidi@outlook.com
-> **Docente:** Diego Luis Pires | dl.pires@sidi.org.br
-> **Disciplina:** MLOps (aula 3) — rastreamento de experimentos, deploy e monitoramento
+> **Disciplina:** MLOps — rastreamento de experimentos, deploy e monitoramento
 > **Instituição:** SiDi SOFTEX
-> **Repositório (fork):** `cavalcanteprofissional/sentiment-analysis` (base: `profdiegoluispires/sentiment-analysis`)
+> **Fork (repositório da atividade):** [`cavalcanteprofissional/sentiment-analysis`](https://github.com/cavalcanteprofissional/sentiment-analysis)
+> **Base (repositório do professor):** [`profdiegoluispires/sentiment-analysis`](https://github.com/profdiegoluispires/sentiment-analysis)
 
-Analisador de sentimentos de texto com Hugging Face Transformers. O projeto demonstra o ciclo MLOps completo: **rastreamento de experimentos com MLflow**, **deploy de API com FastAPI**, uma **demo em Gradio** e a documentação conceitual de **monitoramento em produção**.
+---
+
+## Propósito da atividade <a name="proposito-atividade"></a>
+
+Esta atividade (Exercício A + B + app Gradio) tem como objetivo praticar o **ciclo de vida de um modelo de Machine Learning sob a perspectiva de MLOps** — não apenas treinar um modelo, mas **gerenciá-lo e colocá-lo em operação** de forma rastreável e reproduzível. Concretamente, o projeto exercita:
+
+- **Rastreamento de experimentos (MLflow)** — registrar e comparar múltiplas execuções (parâmetros, métricas, artefatos) para decidir qual modelo segue para produção.
+- **Deploy de uma API de inferência (FastAPI)** — expor o modelo escolhido por HTTP, com um endpoint de **inferência em lote** (`/predict/batch`) que trata erros e valida entrada.
+- **Interface de demonstração (Gradio)** — uma UI web simples que permite qualquer pessoa testar o modelo por demanda.
+- **Monitoramento em produção (conceitual)** — documentar como detectar drift (data/concept) e métricas de produção.
+- **Organização e DevOps** — reprodutibilidade (Poetry + requirements), testes automatizados (pytest) e **integração contínua** (bônus) via GitHub Actions.
+
+## Propósito do modelo <a name="proposito-modelo"></a>
+
+O modelo é um **classificador de sentimento de texto** (análise de sentimento / sentiment analysis) baseado em **Transformers do Hugging Face**. Ele recebe uma frase em linguagem natural e retorna o **rótulo de sentimento** com um **score de confiança**:
+
+| Entrada (texto) | Saída (rótulo) | Score (confiança) |
+|---|---|---|
+| "I love this MLflow course!" | `POSITIVE` | ~0.99 |
+| "This experience was terrible" | `NEGATIVE` | ~0.99 |
+
+O objetivo prático do modelo é **classificar automaticamente** a polaridade de um texto (positiva/negativa), permitindo, por exemplo, medir satisfação de clientes, avaliar reviews ou monitorar comentários em grande volume — sendo essa a aplicação final servida pela API e pela demo. Na atividade, **três modelos distintos** são comparados via MLflow para escolher o mais adequado a produção:
+
+- `default` → `distilbert/distilbert-base-uncased-finetuned-sst-2-english`
+- `cardiffnlp/twitter-xlm-roberta-base-sentiment`
+- `nlptown/bert-base-multilingual-uncased-sentiment` (3º modelo adicionado, multilíngue)
+
+Todos são modelos **pré-treinados e abertos** (não exigem token), carregados por demanda via `model.py` (`load_classifier()`), compartilhado entre API e demo.
 
 ---
 
 ## Índice
 
-1. [Estrutura do repositório](#estrutura)
-2. [Setup do ambiente (Poetry)](#setup)
-3. [Exercício A — Rastreamento com MLflow](#mlflow)
-4. [Exercício B — API FastAPI](#api)
-5. [App Gradio](#gradio)
-6. [Monitoramento em produção (conceitual)](#monitoramento)
-7. [Divergências / melhorias aplicadas](#divergencias)
-8. [Como reproduzir os entregáveis](#reproduzir)
-9. [Bônus e extensões possíveis](#bonus)
+1. [Propósito da atividade](#proposito-atividade)
+2. [Propósito do modelo](#proposito-modelo)
+3. [Estrutura do repositório](#estrutura)
+4. [Setup do ambiente (Poetry)](#setup)
+5. [Exercício A — Rastreamento com MLflow](#mlflow)
+6. [Exercício B — API FastAPI](#api)
+7. [App Gradio](#gradio)
+8. [Monitoramento em produção (conceitual)](#monitoramento)
+9. [Divergências / melhorias aplicadas](#divergencias)
+10. [Como reproduzir os entregáveis](#reproduzir)
+11. [Bônus e extensões possíveis](#bonus)
 
 ---
 
-## 1. Estrutura do repositório <a name="estrutura"></a>
+## 3. Estrutura do repositório <a name="estrutura"></a>
 
 ```
 sentiment-analysis/
@@ -52,7 +80,7 @@ sentiment-analysis/
 
 ---
 
-## 2. Setup do ambiente (Poetry) <a name="setup"></a>
+## 4. Setup do ambiente (Poetry) <a name="setup"></a>
 
 O projeto gerencia dependências com **Poetry** (instalado via **pipx**). O venv é criado pelo Poetry em `.venv/` (isolado por projeto).
 
@@ -79,7 +107,7 @@ Execute qualquer comando com `poetry run` (ex.: `poetry run python mlflow_tracki
 
 ---
 
-## 3. Exercício A — Rastreamento com MLflow <a name="mlflow"></a>
+## 5. Exercício A — Rastreamento com MLflow <a name="mlflow"></a>
 
 Compara **três modelos** de análise de sentimentos sobre um pequeno conjunto de frases de teste, registrando no MLflow **parâmetros**, **métricas** e **artefatos** por execução (run).
 
@@ -126,7 +154,7 @@ poetry run python scripts/generate_comparison.py
 
 ---
 
-## 4. Exercício B — API FastAPI <a name="api"></a>
+## 6. Exercício B — API FastAPI <a name="api"></a>
 
 Endpoint de inferência com FastAPI, reutilizando o mesmo modelo via `model.py`.
 
@@ -157,7 +185,7 @@ Tratamento de erros: lista vazia ou itens inválidos → HTTP 400; falha na infe
 
 ---
 
-## 5. App Gradio <a name="gradio"></a>
+## 7. App Gradio <a name="gradio"></a>
 
 Demo interativa:
 
@@ -169,7 +197,7 @@ Interface carrega o modelo e retorna a predição de sentimento do texto (POSITI
 
 ---
 
-## 6. Monitoramento em produção <a name="monitoramento"></a>
+## 8. Monitoramento em produção <a name="monitoramento"></a>
 
 > Nível conceitual (documentado aqui e via parâmetros/métricas no MLflow).
 
@@ -192,7 +220,7 @@ Queda da **confiança média** ou da **acurácia** sobre amostras rotuladas manu
 
 ---
 
-## 7. Divergências / melhorias aplicadas <a name="divergencias"></a>
+## 9. Divergências / melhorias aplicadas <a name="divergencias"></a>
 
 Ajustes feitos sobre o repositório-base, todos sinalizados aqui por exigência da atividade:
 
@@ -208,7 +236,7 @@ Ajustes feitos sobre o repositório-base, todos sinalizados aqui por exigência 
 
 ---
 
-## 8. Como reproduzir os entregáveis <a name="reproduzir"></a>
+## 10. Como reproduzir os entregáveis <a name="reproduzir"></a>
 
 | Entregável | Passos | Evidência gerada |
 |---|---|---|
@@ -223,7 +251,7 @@ Os prints ficam em `docs/prints/` (mantidos apenas local, ignorados no remoto): 
 
 ---
 
-## 9. Bônus e extensões possíveis <a name="bonus"></a>
+## 11. Bônus e extensões possíveis <a name="bonus"></a>
 
 - **Fine-tuning** com IMDb (`train_model.py` + `poetry install --with train`).
 - **Deploy Hugging Face Spaces** (ZeroGPU gratuito ou `share=True`); CPU dedicada exige plano PRO.
