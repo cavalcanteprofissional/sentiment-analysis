@@ -1,0 +1,40 @@
+name: CI — Testes da API e MLflow
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Instalar Poetry (via pipx)
+        run: pipx install poetry
+
+      - name: Cache de dependências do Poetry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('poetry.lock') }}
+
+      - name: Instalar dependências do projeto (+ dev)
+        run: poetry install --with dev
+
+      - name: Lint (ruff)
+        run: poetry run ruff check .
+
+      - name: Testes da API (pytest + fastapi.testclient)
+        run: poetry run pytest -q
+
+      - name: Smoke test — mlflow_tracking importa (SQLite, sem servidor)
+        run: poetry run python scripts/ci_smoke.py

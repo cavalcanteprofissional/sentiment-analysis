@@ -1,244 +1,241 @@
-# Sentiment Analyzer
+# Sentiment Analyzer — MLOps com MLflow
 
-A interactive sentiment analysis demo for educational purposes. Build your own ML app, track experiments with MLflow, and deploy an inference API.
+> **Discente:** Lucas Cavalcante dos Santos | cavalcantesidi@outlook.com
+> **Docente:** Diego Luis Pires | dl.pires@sidi.org.br
+> **Disciplina:** MLOps (aula 3) — rastreamento de experimentos, deploy e monitoramento
+> **Instituição:** SiDi SOFTEX
+> **Repositório (fork):** `cavalcanteprofissional/sentiment-analysis` (base: `profdiegoluispires/sentiment-analysis`)
 
-## Overview
+Analisador de sentimentos de texto com Hugging Face Transformers. O projeto demonstra o ciclo MLOps completo: **rastreamento de experimentos com MLflow**, **deploy de API com FastAPI**, uma **demo em Gradio** e a documentação conceitual de **monitoramento em produção**.
 
-This project demonstrates building a sentiment analysis application using Hugging Face Transformers and Gradio. Students will learn the complete MLOps pipeline: model selection, interface building, experiment tracking, deployment, and customization.
+---
 
-## Pré-requisitos
+## Índice
 
-- **Colab**: usado apenas na demonstração do professor (Bloco 2). Esta atividade **não** depende do Colab.
-- **Python instalado localmente** (3.10+) na sua máquina — os Exercícios A e B desta atividade rodam num terminal local, não dentro do Colab.
+1. [Estrutura do repositório](#estrutura)
+2. [Setup do ambiente (Poetry)](#setup)
+3. [Exercício A — Rastreamento com MLflow](#mlflow)
+4. [Exercício B — API FastAPI](#api)
+5. [App Gradio](#gradio)
+6. [Monitoramento em produção (conceitual)](#monitoramento)
+7. [Divergências / melhorias aplicadas](#divergencias)
+8. [Como reproduzir os entregáveis](#reproduzir)
+9. [Bônus e extensões possíveis](#bonus)
 
-## Initial Code Structure
+---
+
+## 1. Estrutura do repositório <a name="estrutura"></a>
 
 ```
 sentiment-analysis/
-├── app.py                    # Starting code (to be completed by students)
-├── model.py                  # Model loading, shared by app.py, mlflow_tracking.py and api/main.py
-├── mlflow_tracking.py        # Exercício A (obrigatório): rastreamento de experimentos com MLflow
+├── app.py                    # Demo Gradio
+├── model.py                  # Carregamento compartilhado do modelo (pipeline Hugging Face)
+├── mlflow_tracking.py        # Exercício A: rastreamento de experimentos (MLflow)
 ├── api/
-│   └── main.py                # Exercício B (obrigatório): endpoint de inferência com FastAPI
-├── requirements.txt          # Python dependencies (cobre app, MLflow e API)
-├── requirements_train.txt    # Dependência extra (scikit-learn), só para o bônus
-├── train_model.py            # Optional: Train your own model (bônus)
-└── README.md                 # Instructions and challenges
+│   ├── __init__.py
+│   └── main.py               # Exercício B: API de inferência (FastAPI)
+├── scripts/
+│   ├── generate_comparison.py  # Gera a tabela de comparação de runs (CSV/MD)
+│   ├── capture_screen.ps1      # Captura de tela (PowerShell, sem dependências)
+│   └── shoot_web.mjs           # Web-shot via Playwright (ferramenta dev, fora do runtime)
+├── docs/prints/              # Evidências (prints) das etapas entregáveis
+├── train_model.py            # Bônus: fine-tuning com IMDB (opcional)
+├── MODEL_CARD.md             # Model card
+├── tests/                    # Testes (pytest + fastapi.testclient) para o CI
+├── pyproject.toml            # Gerenciamento de dependências com Poetry
+├── poetry.lock               # Lockfile reproduzível
+├── requirements.txt          # Compat: export `poetry export --without-hashes -o requirements.txt`
+├── requirements_train.txt    # Deps extras para o bônus de fine-tuning
+├── .env.example              # Variáveis de ambiente (template; .env não é versionado)
+└── .gitignore
 ```
 
-## Getting Started
+---
 
-### Step 1: Run Locally
+## 2. Setup do ambiente (Poetry) <a name="setup"></a>
+
+O projeto gerencia dependências com **Poetry** (instalado via **pipx**). O venv é criado pelo Poetry em `.venv/` (isolado por projeto).
 
 ```bash
-pip install -r requirements.txt
-python app.py
+# 1. Clone do fork
+git clone https://github.com/cavalcanteprofissional/sentiment-analysis.git
+cd sentiment-analysis
+
+# 2. Instalar as dependências
+poetry install
+
+# 3. Opcional: grupos de desenvolvimento e treino
+poetry install --with dev   # pytest + ruff
+poetry install --with train # scikit-learn (bônus fine-tuning)
+
+# 4. Variável de ambiente do MLflow (ver seção MLflow)
+cp .env.example .env        # edite se preciso
 ```
 
-`requirements.txt` já cobre tudo que é necessário na aula (app, MLflow, API). Só instale `requirements_train.txt` também se for tentar o desafio bônus de fine-tuning:
+> **Nota sobre o ambiente Windows:** o projeto reside em um caminho com espaços e acentos (`D:\BACK UP\...\RESIDÊNCIA PRÁTICA\...`). Nesse cenário o venv do Poetry é redirecionado para um diretório sem acentos para evitar erros de encoding (ver [Divergências](#divergencias)).
+> Uso alternativo sem Poetry: `pip install -r requirements.txt` (arquivo gerado via `poetry export`).
+
+Execute qualquer comando com `poetry run` (ex.: `poetry run python mlflow_tracking.py`).
+
+---
+
+## 3. Exercício A — Rastreamento com MLflow <a name="mlflow"></a>
+
+Compara **três modelos** de análise de sentimentos sobre um pequeno conjunto de frases de teste, registrando no MLflow **parâmetros**, **métricas** e **artefatos** por execução (run).
+
+### Modelos comparados
+
+| Run | Modelo | Esquema de rótulo |
+|-----|--------|-------------------|
+| 1 | `default-distilbert-sst2` (distilbert-base-uncased-finetuned-sst-2-english) | POSITIVE / NEGATIVE |
+| 2 | `cardiffnlp/twitter-xlm-roberta-base-sentiment` | POSITIVE / NEGATIVE (multilíngue) |
+| 3 | `nlptown/bert-base-multilingual-uncased-sentiment` | "1 star".."5 stars" (multilíngue) |
+
+Métricas logadas por run: `accuracy_frases_teste`, `avg_confidence`, `latencia_media_seg`. Artefato: `resultados.json` com a predição detalhada de cada frase.
+
+### Subir o servidor MLflow (UI)
 
 ```bash
-pip install -r requirements.txt -r requirements_train.txt
+docker run -p 5000:5000 \
+  -v "$PWD/mlruns:/mlflow/mlruns" \
+  ghcr.io/mlflow/mlflow \
+  mlflow server --host 0.0.0.0 --port 5000
 ```
 
-Test the interface and understand how it works.
-
-### Step 2 (opcional/complementar): Deploy to Hugging Face Spaces
-
-Follow the same steps as the Hot Dog Classifier demo:
-
-1. Create Space at [hf.co/new-space](https://hf.co/new-space)
-2. Choose **Gradio** SDK
-3. Push files via git (`app.py`, `model.py`, `requirements.txt`)
-
-> ⚠️ Se for reaproveitar este README como README do Space, adicione o bloco de front-matter YAML (título, emoji, `sdk: gradio`, `app_file: app.py`, etc.) no topo do arquivo antes de copiar — veja o exemplo completo no README do `hotdog-classifier`. Sem ele, o Space não builda.
-
----
-
-## Exercício A (obrigatório): Rastreamento de Experimentos com MLflow
-
-**Tempo:** ~30 minutos
-
-Rode `mlflow_tracking.py`: ele compara dois modelos de sentiment analysis (o default e `cardiffnlp/twitter-xlm-roberta-base-sentiment`) em um pequeno conjunto de frases de teste, registrando no MLflow:
-
-- **params**: qual modelo foi usado
-- **metrics**: acurácia nas frases de teste, confiança média, latência média
-- **artifacts**: um JSON com os resultados detalhados
+A UI fica em `http://localhost:5000`. O tracking URI é controlado pela variável `MLFLOW_TRACKING_URI` (template em `.env.example`):
 
 ```bash
-python mlflow_tracking.py
+export MLFLOW_TRACKING_URI=http://localhost:5000   # UI + persistência via Docker
+# ou, sem servidor (fallback do script):
+export MLFLOW_TRACKING_URI=sqlite:///mlruns.db
 ```
 
-**Sua tarefa:** adicione um terceiro modelo à lista `MODELS_TO_COMPARE` (pode ser um dos sugeridos no Challenge 3 abaixo), rode novamente, e observe a tabela de comparação impressa ao final (via `mlflow.search_runs()`).
-
-**Concepts:** experiment tracking, params/metrics/artifacts, comparação de runs.
-
----
-
-## Exercício B (obrigatório): Deploy via API
-
-**Tempo:** ~35 minutos
-
-`api/main.py` expõe o modelo via FastAPI. Roda **localmente, num terminal** (não no Colab):
+### Rodar
 
 ```bash
-uvicorn api.main:app --reload
+poetry run python mlflow_tracking.py
 ```
 
-Os endpoints `/health` e `/predict` já funcionam — teste-os via Swagger UI (`http://localhost:8000/docs`) ou curl:
+Ao final, o próprio script imprime a tabela de comparação via `mlflow.search_runs()`. Também é possível gerar os artefatos de comparação (CSV/MD) em `docs/prints/`:
 
 ```bash
-curl -X POST http://localhost:8000/predict -H "Content-Type: application/json" \
-     -d '{"text": "I love this course!"}'
+poetry run python scripts/generate_comparison.py
 ```
 
-**Sua tarefa:** implemente o endpoint `POST /predict/batch`, que recebe uma lista de textos e retorna uma predição para cada um (reaproveite a lógica de `/predict`).
-
-**Concepts:** deploy de modelo, API REST, request/response schema (Pydantic).
+> A 3ª run usa o modelo `nlptown`, cujos rótulos são "1 star".."5 stars". A função `normalize_label()` foi estendida para mapeá-los a POSITIVE/NEGATIVE (ver [Divergências](#divergencias)); sem isso a acurácia desse modelo seria zerada.
 
 ---
 
-## 🎯 Challenge 1: Visual Customization (aquecimento)
+## 4. Exercício B — API FastAPI <a name="api"></a>
 
-**Time:** 10 minutes
+Endpoint de inferência com FastAPI, reutilizando o mesmo modelo via `model.py`.
 
-Modify the app to make it more visually appealing:
+```bash
+poetry run uvicorn api.main:app --reload
+```
 
-1. Change the emoji in the app title
-2. Add a subtitle/description about ML and sentiment analysis
-3. Change color scheme using Gradio's theme options
+Endpoints (Swagger UI em `http://localhost:8000/docs`):
 
-**Concepts:** User interface design, Gradio customization
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/health` | Saúde da aplicação |
+| POST | `/predict` | Predição de um único texto |
+| POST | `/predict/batch` | Predição de uma lista de textos (mesma ordem) |
 
----
+Exemplos:
 
-## 🎯 Challenge 2: Enhanced Output (aquecimento)
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" -d '{"text": "I love this course!"}'
 
-**Time:** 15 minutes
+curl -X POST http://localhost:8000/predict/batch \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["I love this course!", "This is terrible"]}'
+```
 
-Improve the output display to show more details:
-
-1. Modify the output to show both label and confidence score
-2. Add a score display (e.g., "Confidence: 95%")
-3. Create a custom function that formats the result better
-
-**Hint:** The pipeline returns `{'label': 'POSITIVE', 'score': 0.95}`
-
-**Concepts:** Output formatting, working with model predictions
-
----
-
-## 🎯 Challenge 3: Multi-Language Support (se sobrar tempo)
-
-**Time:** 15 minutes
-
-Add support for Portuguese language:
-
-1. Modify the pipeline to use a multi-language or Portuguese-specific model
-2. Add a language selector dropdown
-3. Handle both English and Portuguese text
-
-**Modelos verificados e testados (Hugging Face Hub):**
-- `cardiffnlp/twitter-xlm-roberta-base-sentiment` (multilíngue, inclui português)
-- `nlptown/bert-base-multilingual-uncased-sentiment` (multilíngue; atenção: retorna rótulos "1 star".."5 stars" em vez de POSITIVE/NEGATIVE — bom exemplo real de como modelos diferentes usam esquemas de rótulo diferentes)
-
-**Concepts:** Model selection, internationalization, esquemas de rótulo diferentes entre modelos
+Tratamento de erros: lista vazia ou itens inválidos → HTTP 400; falha na inferência → HTTP 500 com mensagem clara. A lógica de predição individual foi extraída para `_predict_one()` e é reutilizada por `/predict` e `/predict/batch`.
 
 ---
 
-## 🔥 Bonus Challenge (Optional, fora do horário de aula)
+## 5. App Gradio <a name="gradio"></a>
 
-**Time:** 45+ minutes
+Demo interativa:
 
-Implement your own training pipeline using the IMDB dataset:
+```bash
+poetry run python app.py
+```
 
-1. Load the IMDB dataset from Hugging Face `datasets`
-2. Fine-tune a pre-trained model (e.g., BERT, DistilBERT) with `train_model.py`
-3. Save and load your custom model
-4. Replace the default pipeline with your fine-tuned model
-
-**Concepts:** Transfer learning, fine-tuning, dataset loading
+Interface carrega o modelo e retorna a predição de sentimento do texto (POSITIVE/NEGATIVE). Publicação temporária grátis: `demo.launch(share=True)`.
 
 ---
 
-## Educational Goals
+## 6. Monitoramento em produção <a name="monitoramento"></a>
 
-By completing this activity, students will learn:
+> Nível conceitual (documentado aqui e via parâmetros/métricas no MLflow).
 
-1. **MLOps Fundamentals**: Experiment tracking, model deployment, versioning
-2. **MLflow**: Logging params/metrics/artifacts, comparing runs
-3. **FastAPI**: Building and testing a REST inference endpoint
-4. **Gradio Interface**: Building interactive ML applications
-5. **Transformers Pipeline**: Using pre-trained models
-6. **Model Selection**: Finding and evaluating models on Hugging Face Hub
+### Data drift (deriva de dados)
+Mudança na **distribuição dos dados de entrada** em relação ao conjunto de treino. Ex.: o modelo treinado com reviews de filmes em inglês passa a receber mensagens curtas em português — a distribuição de comprimento, vocabulário e idioma muda, mesmo que a relação entrada→saída continue a mesma.
+
+### Model / concept drift (deriva de modelo/conceito)
+Mudança na **relação entre entrada e saída esperada** ao longo do tempo. Ex.: o significado de "tremendo" muda conforme o domínio/época; a mesma frase passa a ser rotulada de forma incorreta mesmo com dados semelhantes aos do treino.
+
+### Métricas de acompanhamento sugeridas
+- **Volume de predições** por unidade de tempo (detecta mudanças na demanda/uso).
+- **Distribuição das classes previstas** (proporção POSITIVE/NEGATIVE — deslocamentos sinalizam drift de dados ou de conceito).
+- **Confiança média** das predições (logada como `avg_confidence` no MLflow).
+
+### Sinal de alerta
+Queda da **confiança média** ou da **acurácia** sobre amostras rotuladas manualmente ao longo do tempo. Um limiar de confiança decrescente, ou um drift estatístico na distribuição das classes, deve acionar a revisão.
+
+### Ação diante de drift
+**Retreino periódico** com dados mais recentes (recoletados/rotulados), reavaliando o modelo com o pipeline de tracking do MLflow para comparar a nova versão (accuracy, confiança, latência) antes do deploy.
 
 ---
 
-## Timeline Guide (120 minutos)
+## 7. Divergências / melhorias aplicadas <a name="divergencias"></a>
 
-| Atividade | Tempo | Obrigatório? |
+Ajustes feitos sobre o repositório-base, todos sinalizados aqui por exigência da atividade:
+
+1. **Tracking URI via variável de ambiente** (`mlflow_tracking.py`) — o base fixava `sqlite:///mlruns.db`. Passou a ler `MLFLOW_TRACKING_URI` (com fallback SQLite) para funcionar com o servidor Docker (`:5000`) e com o SQLite local, sem hardcodar.
+2. **Terceiro modelo** (`MLFLOW_MODELS`) — adicionado `nlptown/bert-base-multilingual-uncased-sentiment` como 3ª run.
+3. **`normalize_label()` estendida** (`mlflow_tracking.py`) — o base só mapeava POS/NEG; a partir do modelo `nlptown` passou a mapear "1-2 stars"→NEGATIVE, "4-5 stars"→POSITIVE (e é neutro para "3 stars"). Sem isso a acurácia da 3ª run seria 0.
+4. **Encoding UTF-8 no console** (`mlflow_tracking.py`) — o MLflow 3.x imprime um emoji no fim de cada run; no console Windows (cp1252) isso lançaria `UnicodeEncodeError`. Adicionado `sys.stdout.reconfigure(encoding="utf-8")`.
+5. **`/predict/batch` implementado** (`api/main.py`) — o base deixava `raise NotImplementedError`. Validação Pydantic (`BatchInput`), lista vazia/itens inválidos → HTTP 400, erro de inferência → HTTP 500, e lógica extraída para `_predict_one()` reutilizada.
+6. **Poetry + pyproject.toml** — migração de `requirements.txt` (mantido via `poetry export` para compat) para Poetry; grupos `dev` (pytest, ruff) e `train` (scikit-learn).
+7. **Ruff (lint + format)** — aplicado de forma consistente (inclui ajuste de whitespace/linhas longas em arquivos do base, como `model.py` e `train_model.py`).
+8. **`.gitignore` ampliado** — cobertura de `mlruns/`, `.env`, caches, `.venv/`, `.pytest_cache`, etc.
+9. **Venv do Poetry em diretório sem acentos** — contorno de erro de encoding do Poetry no Windows para caminhos não-ASCII (`D:\BACK UP\...\RESIDÊNCIA PRÁTICA\...`).
+
+---
+
+## 8. Como reproduzir os entregáveis <a name="reproduzir"></a>
+
+| Entregável | Passos | Evidência gerada |
 |---|---|---|
-| Setup local + teste do `app.py` | 10 min | Sim |
-| Challenge 1: Customização Visual | 10 min | Aquecimento |
-| Challenge 2: Output com confidence score | 15 min | Aquecimento |
-| **Exercício A: Rastreamento com MLflow** | 30 min | **Sim** |
-| **Exercício B: Endpoint FastAPI** | 35 min | **Sim** |
-| Challenge 3: Suporte multi-idioma | 15 min | Se sobrar tempo |
-| Revisão da rubrica / dúvidas finais | 5 min | — |
-| **Total** | **~120 min** | |
-| Bônus: fine-tuning (`train_model.py`) | 45+ min | Fora da aula, entrega posterior |
+| Tabela de comparação MLflow | `export MLFLOW_TRACKING_URI=http://localhost:5000` + `poetry run python mlflow_tracking.py` | `docs/prints/01_mlflow_comparacao.csv` / `.md` + UI |
+| Teste `/predict/batch` | `poetry run uvicorn api.main:app --reload` + curl/Swagger | `docs/prints/04_swagger_predict_batch.png` |
+| App Gradio | `poetry run python app.py` | `docs/prints/06_gradio_app.png` |
+| CI/CD (bônus) | Git push no fork → GitHub Actions | link do run (README) |
+
+Os prints ficam em `docs/prints/`: `00_mlflow_ui.png` (UI do servidor), `01_mlflow_comparacao.csv/.md` (tabela), `02_mlflow_ui_runs.png` (UI com as 3 runs), `03_mlflow_console.png` (console), `04_swagger_predict_batch.png` (Swagger), `05_api_batch_console.png` (curl), `06_gradio_app.png` (interface Gradio), `07_ci_actions_run.txt`/`07_ci_actions_success.png` (CI bônus).
+
+**CI/CD (bônus):** o workflow `.github/workflows/ci.yml` roda lint (ruff), testes pytest (`tests/test_api.py`) e smoke test do `mlflow_tracking`. Run de exemplo (sucesso): https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33586365609
 
 ---
 
-## Checklist de entrega (rubrica)
+## 9. Bônus e extensões possíveis <a name="bonus"></a>
 
-**Obrigatório**
-- [ ] App Gradio (`app.py`) rodando localmente sem erros
-- [ ] `mlflow_tracking.py` executado com pelo menos 3 runs registrados, incluindo 1 modelo adicional escolhido pelo aluno
-- [ ] Print ou export da tabela de comparação (`mlflow.search_runs()`)
-- [ ] `api/main.py` rodando localmente, `/predict` testado via curl ou Swagger UI
-- [ ] Endpoint `/predict/batch` implementado
-- [ ] Organização do repositório e clareza do código
-
-**Opcional / Bônus**
-- [ ] Challenge 1 e/ou 2 (customização visual, output com confidence score)
-- [ ] Challenge 3: suporte a português com modelo verificado
-- [ ] Deploy no Hugging Face Spaces
-- [ ] Bônus: fine-tuning com `train_model.py` (entrega posterior, fora do horário de aula)
+- **Fine-tuning** com IMDb (`train_model.py` + `poetry install --with train`).
+- **Deploy Hugging Face Spaces** (ZeroGPU gratuito ou `share=True`); CPU dedicada exige plano PRO.
+- **CI/CD** via GitHub Actions — o workflow `.github/workflows/ci.yml` roda em cada push para `main`:
+  1. `ruff check` (lint);
+  2. `pytest` (5 testes em `tests/test_api.py` cobrindo `/health`, `/predict` e `/predict/batch` incluindo casos de erro);
+  3. smoke test do `mlflow_tracking` (SQLite, sem servidor) via `scripts/ci_smoke.py`.
+  - Run de sucesso: https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33586365609
+  - Evidência textual: `docs/prints/07_ci_actions_run.txt`.
 
 ---
 
-## Common Issues & Solutions
+## Licença
 
-### Error: "Model not found"
-**Solution:** Check internet connection, try a different model
-
-### Slow inference
-**Solution:** Use smaller models (DistilBERT instead of BERT), use GPU in Spaces
-
-### App doesn't update
-**Solution:** Push changes to git, wait for Space rebuild (~2 min)
-
-### `ModuleNotFoundError: No module named 'sklearn'` ao rodar `train_model.py`
-**Solution:** o bônus precisa de `requirements_train.txt` também: `pip install -r requirements.txt -r requirements_train.txt`
-
----
-
-## Resources
-
-- [Hugging Face Hub Models](https://huggingface.co/models)
-- [Gradio Documentation](https://www.gradio.app/docs)
-- [Transformers Pipeline](https://huggingface.co/docs/transformers/pipeline_tutorial)
-- [Sentiment Analysis Task](https://huggingface.co/tasks/text-classification)
-- [MLflow Tracking](https://mlflow.org/docs/latest/tracking.html)
-- [FastAPI](https://fastapi.tiangolo.com/)
-
----
-
-## Teacher Notes
-
-Esta atividade é a **atividade prática avaliativa** do bloco das 14:45–16:45 (120 minutos), após os alunos já terem visto no `hotdog-classifier`: ciclo de vida de ML/MLOps (Bloco 1), rastreamento de experimentos com MLflow (Bloco 2) e deploy via FastAPI/Hugging Face Spaces + monitoramento (Bloco 3).
-
-Os Exercícios A (MLflow) e B (API) são obrigatórios e reforçam diretamente o que foi demonstrado nos Blocos 2 e 3. Os Challenges 1–3 são aquecimento/extensão, não o núcleo avaliado.
-
-All models used are free and publicly available on Hugging Face Hub.
+MIT — uso educacional. Modelos do Hugging Face Hub são públicos/abertos; nenhum token é necessário.

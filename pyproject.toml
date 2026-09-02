@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{ include = "api" }, { include = "model.py" }]
 
 [tool.poetry.dependencies]
-python = ">=3.12,<3.13"
+python = ">=3.11,<3.13"
 transformers = "5.16.1"
 sentencepiece = "0.2.0"
 torch = "2.13.0"
@@ -23,7 +23,7 @@ pillow = "12.3.0"
 optional = true
 
 [tool.poetry.group.train.dependencies]
-scikit-learn = "1.9.0"
+scikit-learn = { version = "1.9.0", python = ">=3.11,<3.13" }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.0"

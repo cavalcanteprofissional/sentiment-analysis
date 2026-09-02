@@ -1,6 +1,7 @@
 .venv/
 __pycache__/
 mlruns.db
+ci_check.db
 resultados.json
 
 .env
@@ -18,3 +19,6 @@ node_modules/
 # Ambiente / IDE
 .vscode/
 .idea/
+
+# Evidências em PNG/CSV/MD — mantidas apenas local (não vão para o remoto)
+docs/prints/
