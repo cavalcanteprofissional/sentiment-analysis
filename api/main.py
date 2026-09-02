@@ -10,9 +10,8 @@ Testar /health e /predict:
 
 TODO (aluno): implementar /predict/batch.
 """
-from typing import List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 from model import load_classifier
@@ -26,7 +25,13 @@ class TextInput(BaseModel):
 
 
 class BatchInput(BaseModel):
-    texts: List[str]
+    texts: list[str]
+
+
+def _predict_one(text: str) -> dict:
+    """Reaproveita a logica de predicao individual usada em /predict e /predict/batch."""
+    result = classifier(text)[0]
+    return {"text": text, "label": result["label"], "score": result["score"]}
 
 
 @app.get("/health")
@@ -36,13 +41,28 @@ def health():
 
 @app.post("/predict")
 def predict(payload: TextInput):
-    result = classifier(payload.text)[0]
-    return {"text": payload.text, "label": result["label"], "score": result["score"]}
+    try:
+        return _predict_one(payload.text)
+    except Exception as exc:  # noqa: BLE001 - erro generico de inferencia
+        raise HTTPException(status_code=500, detail=f"Erro na inferencia: {exc}") from exc
 
 
 @app.post("/predict/batch")
 def predict_batch(payload: BatchInput):
-    # TODO (aluno): implemente este endpoint.
-    # Deve retornar uma lista de predicoes, uma para cada texto em payload.texts,
-    # no mesmo formato do /predict (reaproveite a logica acima).
-    raise NotImplementedError("Implemente o endpoint /predict/batch")
+    """Recebe uma lista de textos e retorna uma predicao para cada um, na mesma ordem.
+
+    - Lista vazia ou itens vazios/invalidos -> HTTP 400.
+    - Erro do modelo -> HTTP 500 com mensagem clara.
+    """
+    if not payload.texts:
+        raise HTTPException(status_code=400, detail="A lista 'texts' nao pode ser vazia.")
+    for i, text in enumerate(payload.texts):
+        if text is None or not str(text).strip():
+            raise HTTPException(
+                status_code=400,
+                detail=f"Item na posicao {i} e invalido (texto vazio ou nulo).",
+            )
+    try:
+        return [_predict_one(text) for text in payload.texts]
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Erro na inferencia em batch: {exc}") from exc
