@@ -217,9 +217,9 @@ Ajustes feitos sobre o repositório-base, todos sinalizados aqui por exigência 
 | App Gradio | `poetry run python app.py` | `docs/prints/06_gradio_app.png` |
 | CI/CD (bônus) | Git push no fork → GitHub Actions | link do run (README) |
 
-Os prints ficam em `docs/prints/`: `00_mlflow_ui.png` (UI do servidor), `01_mlflow_comparacao.csv/.md` (tabela), `02_mlflow_ui_runs.png` (UI com as 3 runs), `03_mlflow_console.png` (console), `04_swagger_predict_batch.png` (Swagger), `05_api_batch_console.png` (curl), `06_gradio_app.png` (interface Gradio), `07_ci_actions_run.txt`/`07_ci_actions_success.png` (CI bônus).
+Os prints ficam em `docs/prints/` (mantidos apenas local, ignorados no remoto): `00_mlflow_ui.png` (UI do servidor), `01_mlflow_comparacao.csv/.md` (tabela), `02_mlflow_ui_runs.png` (UI com as 3 runs), `03_mlflow_console.png` (console), `04_swagger_predict_batch.png` (Swagger), `05_api_batch_console.png` (curl), `06_gradio_app.png` (interface Gradio), `07_ci_actions_run.txt`/`07_ci_actions_success.png` (CI bônus).
 
-**CI/CD (bônus):** o workflow `.github/workflows/ci.yml` roda lint (ruff), testes pytest (`tests/test_api.py`) e smoke test do `mlflow_tracking`. Run de exemplo (sucesso): https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33586365609
+**CI/CD (bônus):** o workflow `.github/workflows/ci.yml` roda lint (ruff), testes pytest (`tests/test_api.py`) e smoke test do `mlflow_tracking`. Run de exemplo (sucesso): https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33592516367
 
 ---
 
@@ -231,8 +231,8 @@ Os prints ficam em `docs/prints/`: `00_mlflow_ui.png` (UI do servidor), `01_mlfl
   1. `ruff check` (lint);
   2. `pytest` (5 testes em `tests/test_api.py` cobrindo `/health`, `/predict` e `/predict/batch` incluindo casos de erro);
   3. smoke test do `mlflow_tracking` (SQLite, sem servidor) via `scripts/ci_smoke.py`.
-  - Run de sucesso: https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33586365609
-  - Evidência textual: `docs/prints/07_ci_actions_run.txt`.
+  - Run de sucesso: https://github.com/cavalcanteprofissional/sentiment-analysis/actions/runs/33592516367
+  - Evidência textual: `docs/prints/07_ci_actions_run.txt` (mantido apenas local).
 
 ---
 
